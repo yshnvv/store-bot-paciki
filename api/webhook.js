@@ -5,7 +5,7 @@ import { ShopService } from "../services/shopService.js";
 
 dotenv.config();
 
-const { Telegraf } = telegraf;
+const { Telegraf, Input } = telegraf;
 
 export const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -61,7 +61,7 @@ bot.action("getOrderList", async (ctx) => {
 	await ShopService.getOrderList();
 	// await GoogleDocService.updateSheet([{ name: "Jenya" }]);
 
-	await ctx.reply("Таблица сформирована");
+	// await ctx.reply("Таблица сформирована");
 });
 
 bot.action("getFBS", async (ctx) => {
@@ -75,24 +75,18 @@ bot.action("getExpress", async (ctx) => {
 });
 
 bot.action("getLabels", async (ctx) => {
-	await ShopService.getLabels();
-	await ctx.reply("Этикетки получены");
+	const labels = await ShopService.getLabels();
+	await ctx.replyWithPhoto({ source: Buffer.from(labels, "base64") });
 });
 
 bot.action("getRefunds", async (ctx) => {
-	await ShopService.getRefunds();
-	await ctx.reply("Возвраты получены");
+	const refunds = await ShopService.getRefunds();
+	await ctx.replyWithPhoto({ source: Buffer.from(refunds, "base64") });
 });
 
 bot.action("shipGoods", async (ctx) => {
 	await ShopService.shipGoods();
 	await ctx.reply("Товары отгружены");
-});
-
-bot.action("getOrderList", async (ctx) => {
-	await GoogleDocService.updateSheet([{ name: "Kolya" }]);
-
-	await ctx.reply("Таблица сформирована");
 });
 
 export default async (request, response) => {

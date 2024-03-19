@@ -14,12 +14,16 @@ const serviceAccountAuth = new JWT({
 
 export class GoogleDocService {
 	static async updateSheet(data) {
-		const doc = new GoogleSpreadsheet(SHEET_ID, serviceAccountAuth);
-		await doc.loadInfo();
+		try {
+			const doc = new GoogleSpreadsheet(SHEET_ID, serviceAccountAuth);
+			await doc.loadInfo();
 
-		const sheet = doc.sheetsByIndex[0];
-		await sheet.clearRows();
+			const sheet = doc.sheetsByIndex[0];
+			await sheet.clearRows();
 
-		await sheet.addRows(data);
+			await sheet.addRows(data);
+		} catch (err) {
+			console.log(err);
+		}
 	}
 }
