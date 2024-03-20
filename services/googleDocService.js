@@ -1,10 +1,10 @@
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import { JWT } from "google-auth-library";
-import dotenv from "dotenv";
-dotenv.config();
-
-const { SHEET_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY } =
-	process.env;
+import {
+	SHEET_ID,
+	GOOGLE_SERVICE_ACCOUNT_EMAIL,
+	GOOGLE_PRIVATE_KEY,
+} from "../constants/environment.js";
 
 const serviceAccountAuth = new JWT({
 	email: GOOGLE_SERVICE_ACCOUNT_EMAIL,

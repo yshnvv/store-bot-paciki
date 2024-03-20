@@ -1,46 +1,45 @@
 import axios from "axios";
-import dotenv from "dotenv";
-import moment from "moment";
-dotenv.config();
+import { getTodayTimeRange } from "../utils/time.js";
+import { shops, BASE_API } from "../constants/environment.js";
+import { prepareOrdersForSheet } from "../utils/products.js";
 
-const { BASE_API, API_KEY, SHOPS_ID } = process.env;
-const shops = SHOPS_ID.split(",");
+const LIMIT = 1000;
 
-// const LIMIT = 1000;
+const getUnfulfilledOrders = async (shopId, shopKey) => {
+	const { from, to } = getTodayTimeRange();
+	const { data } = await axios.post(
+		`${BASE_API}/v3/posting/fbs/unfulfilled/list`,
+		{
+			dir: "asc",
+			filter: {
+				cutoff_from: from,
+				cutoff_to: to,
+			},
+			limit: LIMIT,
+		},
+		{
+			headers: {
+				"Client-Id": shopId,
+				"Api-Key": shopKey,
+			},
+		}
+	);
 
-// const getOrders = async (shopId, shopKey) => {
-// 	const { data } = await axios.post(
-// 		`${BASE_API}/v3/posting/fbs/unfulfilled/list`,
-// 		{
-// 			dir: "asc",
-// 			filter: {
-// 				cutoff_from: "2024-02-18T14:15:22Z",
-// 				cutoff_to: "2024-03-18T14:15:22Z",
-// 			},
-// 			limit: LIMIT,
-// 		},
-// 		{
-// 			headers: {
-// 				"Client-Id": shops[0],
-// 				"Api-Key": API_KEY,
-// 			},
-// 		}
-// 	);
+	const products = data.result.postings.map((order) => ({
+		products: order.products,
+		express: order.is_express,
+		status: order.status,
+		postingNumber: order.posting_number,
+		id: order.order_id,
+	}));
 
-// 	const products = data.result.postings.map((order) => ({
-// 		product: order.products[0],
-// 		express: order.is_express,
-// 		id: order.order_id,
-// 	}));
-
-// 	return products;
-// };
+	return products;
+};
 
 export class ShopService {
 	static async getOrderList() {
 		try {
-			const date = new Date();
-			console.log(date.to);
+			console.log(getTodayTimeRange());
 		} catch (err) {
 			console.log(err);
 		}
@@ -60,34 +59,48 @@ export class ShopService {
 		}
 	}
 
-	static async getLabels() {
+	static async getLabels(id, apiKey) {
 		try {
+			const orders = await getUnfulfilledOrders(id, apiKey);
+			const PostingIDs = orders
+				.filter((order) => order.status === "awaiting_deliver")
+				.map((order) => order.postingNumber);
+
+			if (!PostingIDs.length) {
+				return null;
+			}
+
 			const { data } = await axios.post(
-				`${BASE_API}/v1/return/giveout/get-png`,
-				{},
+				`${BASE_API}/v2/posting/fbs/package-label`,
 				{
+					posting_number: PostingIDs,
+				},
+				{
+					responseType: "stream",
 					headers: {
-						"Client-Id": shops[0],
-						"Api-Key": API_KEY,
+						"Client-Id": id,
+						"Api-Key": apiKey,
+						"Content-Type": "application/json",
+						Accept: "application/pdf",
 					},
 				}
 			);
 
-			return data.png;
+			return data;
 		} catch (err) {
 			console.log(err);
 		}
 	}
 
-	static async getRefunds() {
+	static async getRefunds(id, apiKey) {
 		try {
 			const { data } = await axios.post(
 				`${BASE_API}/v1/return/giveout/get-png`,
 				{},
 				{
 					headers: {
-						"Client-Id": shops[0],
-						"Api-Key": API_KEY,
+						"Client-Id": id,
+						"Api-Key": apiKey,
 					},
 				}
 			);

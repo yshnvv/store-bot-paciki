@@ -1,13 +1,13 @@
-import dotenv from "dotenv";
 import telegraf from "telegraf";
 import { GoogleDocService } from "../services/googleDocService.js";
 import { ShopService } from "../services/shopService.js";
-
-dotenv.config();
+import { BOT_TOKEN } from "../constants/environment.js";
+import { shops } from "../constants/environment.js";
+import { getCurrentDate } from "../utils/time.js";
 
 const { Telegraf, Input } = telegraf;
 
-export const bot = new Telegraf(process.env.BOT_TOKEN);
+export const bot = new Telegraf(BOT_TOKEN);
 
 const reply_markup = {
 	inline_keyboard: [
@@ -75,13 +75,27 @@ bot.action("getExpress", async (ctx) => {
 });
 
 bot.action("getLabels", async (ctx) => {
-	const labels = await ShopService.getLabels();
-	await ctx.replyWithPhoto({ source: Buffer.from(labels, "base64") });
+	for (const [name, { id, apiKey }] of Object.entries(shops)) {
+		const labels = await ShopService.getLabels(id, apiKey);
+
+		if (!labels) {
+			await ctx.reply(`Бирок для магазина ${name} нет.`);
+			continue;
+		}
+
+		await ctx.replyWithDocument(
+			Input.fromReadableStream(labels, `Бирки ${name} ${getCurrentDate()}.pdf`)
+		);
+	}
 });
 
 bot.action("getRefunds", async (ctx) => {
-	const refunds = await ShopService.getRefunds();
-	await ctx.replyWithPhoto({ source: Buffer.from(refunds, "base64") });
+	for (const [name, { id, apiKey }] of Object.entries(shops)) {
+		const refunds = await ShopService.getRefunds(id, apiKey);
+		await ctx.replyWithPhoto(Input.fromBuffer(Buffer.from(refunds, "base64")), {
+			caption: name,
+		});
+	}
 });
 
 bot.action("shipGoods", async (ctx) => {
