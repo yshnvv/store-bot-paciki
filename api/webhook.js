@@ -2,7 +2,7 @@ import telegraf from "telegraf";
 import { GoogleDocService } from "../services/googleDocService.js";
 import { ShopService } from "../services/shopService.js";
 import { BOT_TOKEN } from "../constants/environment.js";
-import { shops } from "../constants/environment.js";
+import { shops, SHEET_ID } from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
 
 const { Telegraf, Input } = telegraf;
@@ -58,10 +58,12 @@ bot.start(async (ctx) => {
 });
 
 bot.action("getOrderList", async (ctx) => {
-	await ShopService.getOrderList();
-	// await GoogleDocService.updateSheet([{ name: "Jenya" }]);
+	const list = await ShopService.getOrderList();
+	await GoogleDocService.updateSheet(list);
 
-	// await ctx.reply("Таблица сформирована");
+	await ctx.reply(
+		`Таблица обновлена. \n https://docs.google.com/spreadsheets/d/${SHEET_ID}`
+	);
 });
 
 bot.action("getFBS", async (ctx) => {

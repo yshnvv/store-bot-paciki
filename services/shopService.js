@@ -39,7 +39,17 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 export class ShopService {
 	static async getOrderList() {
 		try {
-			console.log(getTodayTimeRange());
+			const shopOrders = [];
+			for (const shop of Object.values(shops)) {
+				const { id, apiKey, color } = shop;
+				const orders = await getUnfulfilledOrders(id, apiKey);
+				const ordersWithColor = orders.map((order) => ({
+					products: order.products.map((product) => ({ ...product, color })),
+				}));
+				shopOrders.push(ordersWithColor);
+			}
+
+			return prepareOrdersForSheet(shopOrders);
 		} catch (err) {
 			console.log(err);
 		}

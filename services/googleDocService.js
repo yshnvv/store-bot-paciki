@@ -12,6 +12,9 @@ const serviceAccountAuth = new JWT({
 	scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
+const CELL_COUNT = 100;
+const CELL_RANGE = `A1:A${CELL_COUNT}`;
+
 export class GoogleDocService {
 	static async updateSheet(data) {
 		try {
@@ -19,9 +22,18 @@ export class GoogleDocService {
 			await doc.loadInfo();
 
 			const sheet = doc.sheetsByIndex[0];
-			await sheet.clearRows();
+			await sheet.clear(CELL_RANGE);
+			await sheet.loadCells(CELL_RANGE);
 
-			await sheet.addRows(data);
+			sheet.setHeaderRow(["Aртикли", "Цены"]);
+
+			data.forEach((article, index) => {
+				const cell = sheet.getCell(index + 1, 0);
+				cell.value = article.name;
+				cell.backgroundColor = article.color;
+			});
+
+			await sheet.saveUpdatedCells();
 		} catch (err) {
 			console.log(err);
 		}
