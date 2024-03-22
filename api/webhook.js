@@ -20,13 +20,13 @@ const reply_markup = {
 		[
 			{
 				text: "2. Собрать все FBS",
-				callback_data: "getFBS",
+				callback_data: "prepareFBS",
 			},
 		],
 		[
 			{
 				text: "3. Собрать все Express",
-				callback_data: "getExpress",
+				callback_data: "prepareExpress",
 			},
 		],
 		[
@@ -44,7 +44,7 @@ const reply_markup = {
 		[
 			{
 				text: "6. Отгрузить",
-				callback_data: "shipGoods",
+				callback_data: "sendGoods",
 			},
 		],
 	],
@@ -66,14 +66,14 @@ bot.action("getOrderList", async (ctx) => {
 	);
 });
 
-bot.action("getFBS", async (ctx) => {
-	await ShopService.getFBS();
-	await ctx.reply("FBS получены");
+bot.action("prepareFBS", async (ctx) => {
+	await ShopService.prepareFBS();
+	await ctx.reply("Не готово");
 });
 
-bot.action("getExpress", async (ctx) => {
-	await ShopService.getExpress();
-	await ctx.reply("Экпресы получены");
+bot.action("prepareExpress", async (ctx) => {
+	await ShopService.prepareExpress();
+	await ctx.reply("Не готово");
 });
 
 bot.action("getLabels", async (ctx) => {
@@ -100,9 +100,9 @@ bot.action("getRefunds", async (ctx) => {
 	}
 });
 
-bot.action("shipGoods", async (ctx) => {
-	await ShopService.shipGoods();
-	await ctx.reply("Товары отгружены");
+bot.action("sendGoods", async (ctx) => {
+	await ShopService.sendGoods();
+	await ctx.reply("Не готово");
 });
 
 export default async (request, response) => {

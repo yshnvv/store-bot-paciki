@@ -7,6 +7,7 @@ const LIMIT = 1000;
 
 const getUnfulfilledOrders = async (shopId, shopKey) => {
 	const { from, to } = getTodayTimeRange();
+
 	const { data } = await axios.post(
 		`${BASE_API}/v3/posting/fbs/unfulfilled/list`,
 		{
@@ -29,6 +30,7 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 		products: order.products,
 		express: order.is_express,
 		status: order.status,
+		deliveryMethod: order.delivery_method,
 		postingNumber: order.posting_number,
 		id: order.order_id,
 	}));
@@ -36,16 +38,29 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 	return products;
 };
 
+const getPostingNumbers = async (id, apiKey, filter) => {
+	const orders = await getUnfulfilledOrders(id, apiKey);
+
+	if (filter) {
+		return orders.filter(filter).map((order) => order.postingNumber);
+	}
+
+	return orders.map((order) => order.postingNumber);
+};
+
 export class ShopService {
 	static async getOrderList() {
 		try {
 			const shopOrders = [];
+
 			for (const shop of Object.values(shops)) {
 				const { id, apiKey, color } = shop;
 				const orders = await getUnfulfilledOrders(id, apiKey);
+
 				const ordersWithColor = orders.map((order) => ({
 					products: order.products.map((product) => ({ ...product, color })),
 				}));
+
 				shopOrders.push(ordersWithColor);
 			}
 
@@ -55,15 +70,25 @@ export class ShopService {
 		}
 	}
 
-	static async getFBS() {
+	static async prepareFBS() {
 		try {
+			// for (const shop of Object.values(shops)) {
+			// 	const { id, apiKey } = shop;
+			// 	const filter = (order) =>
+			// 		order.status !== "awaiting_deliver" && !order.express;
+			// 	const postingNumbers = await getPostingNumbers(id, apiKey, filter);
+			// }
 		} catch (err) {
 			console.log(err);
 		}
 	}
 
-	static async getExpress() {
+	static async prepareExpress() {
 		try {
+			// const filter = (order) =>
+			// 	order.status !== "awaiting_deliver" && order.express;
+			// const postingNumbers = await getPostingNumbers(id, apiKey, filter);
+			// console.log(postingNumbers);
 		} catch (err) {
 			console.log(err);
 		}
@@ -71,19 +96,17 @@ export class ShopService {
 
 	static async getLabels(id, apiKey) {
 		try {
-			const orders = await getUnfulfilledOrders(id, apiKey);
-			const PostingIDs = orders
-				.filter((order) => order.status === "awaiting_deliver")
-				.map((order) => order.postingNumber);
+			const filter = (order) => order.status === "awaiting_deliver";
+			const postingNumbers = await getPostingNumbers(id, apiKey, filter);
 
-			if (!PostingIDs.length) {
+			if (!postingNumbers.length) {
 				return null;
 			}
 
 			const { data } = await axios.post(
 				`${BASE_API}/v2/posting/fbs/package-label`,
 				{
-					posting_number: PostingIDs,
+					posting_number: postingNumbers,
 				},
 				{
 					responseType: "stream",
@@ -121,7 +144,7 @@ export class ShopService {
 		}
 	}
 
-	static async shipGoods() {
+	static async sendGoods() {
 		try {
 		} catch (err) {
 			console.log(err);

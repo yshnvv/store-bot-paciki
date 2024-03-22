@@ -25,6 +25,12 @@ export class GoogleDocService {
 			await sheet.clear(CELL_RANGE);
 			await sheet.loadCells(CELL_RANGE);
 
+			for (let i = 1; i < CELL_COUNT; i++) {
+				const cell = sheet.getCell(i, 0);
+				cell.backgroundColor = { red: 1, green: 1, blue: 1 };
+			}
+			await sheet.saveUpdatedCells();
+
 			sheet.setHeaderRow(["Aртикли", "Цены"]);
 
 			data.forEach((article, index) => {
