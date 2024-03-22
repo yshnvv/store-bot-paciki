@@ -4,6 +4,7 @@ import { ShopService } from "../services/shopService.js";
 import { BOT_TOKEN } from "../constants/environment.js";
 import { shops, SHEET_ID } from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
+import { setWebHook } from "../utils/setWebHook.js";
 
 const { Telegraf, Input } = telegraf;
 
@@ -107,6 +108,7 @@ bot.action("sendGoods", async (ctx) => {
 
 export default async (request, response) => {
 	try {
+		setWebHook();
 		const { body } = request;
 
 		if (body.message || body.callback_query) {
