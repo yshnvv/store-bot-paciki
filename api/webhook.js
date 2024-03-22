@@ -106,11 +106,10 @@ bot.action("sendGoods", async (ctx) => {
 	await ctx.reply("Не готово");
 });
 
-setWebHook();
-
 export default async (request, response) => {
 	try {
 		const { body } = request;
+		setWebHook();
 
 		if (body.message || body.callback_query) {
 			await bot.handleUpdate(body);
