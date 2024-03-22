@@ -52,12 +52,23 @@ export class ShopService {
 	static async getOrderList() {
 		try {
 			const shopOrders = [];
+			const statuses = [
+				"awaiting_registration",
+				"acceptance_in_progress",
+				"awaiting_approve",
+				"awaiting_packaging",
+				"awaiting_deliver",
+			];
 
 			for (const shop of Object.values(shops)) {
 				const { id, apiKey, color } = shop;
-				const orders = await getUnfulfilledOrders(id, apiKey);
 
-				const ordersWithColor = orders.map((order) => ({
+				const orders = await getUnfulfilledOrders(id, apiKey);
+				const filteredOrders = orders.filter(({ status }) =>
+					statuses.includes(status)
+				);
+
+				const ordersWithColor = filteredOrders.map((order) => ({
 					products: order.products.map((product) => ({ ...product, color })),
 				}));
 
