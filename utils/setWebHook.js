@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BOT_TOKEN, BOT_DOMAIN } from "../constants/environment";
+import { BOT_TOKEN, BOT_DOMAIN } from "../constants/environment.js";
 
 export const setWebHook = () => {
 	let isSet = false;
