@@ -13,6 +13,8 @@ const serviceAccountAuth = new JWT({
 	scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
+const COLOR_MAX = 256;
+
 const COLUMNS = 7;
 const ROWS = 100;
 const RANGE = `A1:G${ROWS}`;
@@ -52,8 +54,14 @@ export class GoogleDocService {
 					}
 
 					if (j === 1) {
+						const { red, green, blue } = data[i].color;
 						cell.value = data[i].name;
-						cell.backgroundColor = data[i].color;
+
+						cell.backgroundColor = {
+							red: COLOR_MAX - red,
+							green: COLOR_MAX - green,
+							blue: COLOR_MAX - blue,
+						};
 					}
 
 					if (j === 6) {

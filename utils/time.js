@@ -44,5 +44,12 @@ export const getSheetDate = () => {
 };
 
 export const getDeliveryDate = () => {
-	return moment().set("hour", 16).set("minute", 0).toISOString();
+	return moment()
+		.set("hour", 16 + 2)
+		.set("minute", 0)
+		.toISOString();
+};
+
+export const ISO2DateTime = (iso) => {
+	return moment(iso).format("DD.MM h:mm");
 };

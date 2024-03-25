@@ -1,3 +1,5 @@
+import { ISO2DateTime } from "./time.js";
+
 export const prepareOrdersForSheet = (data) => {
 	const result = [];
 
@@ -9,6 +11,7 @@ export const prepareOrdersForSheet = (data) => {
 						name: product.offer_id,
 						color: product.color,
 						postingNumber: product.postingNumber,
+						shipmentDate: ISO2DateTime(product.shipmentDate),
 					});
 				}
 			});

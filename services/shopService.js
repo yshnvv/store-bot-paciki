@@ -32,6 +32,7 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 		status: order.status,
 		deliveryMethod: order.delivery_method,
 		postingNumber: order.posting_number,
+		shipmentDate: order.shipment_date,
 		id: order.order_id,
 	}));
 
