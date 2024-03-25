@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getTodayTimeRange } from "../utils/time.js";
+import { getTodayTimeRange, getDeliveryDate } from "../utils/time.js";
 import { shops, BASE_API } from "../constants/environment.js";
 import { prepareOrdersForSheet } from "../utils/products.js";
 
@@ -9,12 +9,12 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 	const { from, to } = getTodayTimeRange();
 
 	const { data } = await axios.post(
-		`${BASE_API}/v3/posting/fbs/unfulfilled/list`,
+		`${BASE_API}/v3/posting/fbs/list`,
 		{
 			dir: "asc",
 			filter: {
-				cutoff_from: from,
-				cutoff_to: to,
+				since: from,
+				to: to,
 			},
 			limit: LIMIT,
 		},
@@ -38,27 +38,81 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 	return products;
 };
 
-const getPostingNumbers = async (id, apiKey, filter) => {
+const getPackages = async (id, apiKey, filter) => {
 	const orders = await getUnfulfilledOrders(id, apiKey);
+	console.log(JSON.stringify(orders));
+	const prepareData = (orders) =>
+		orders.map(({ postingNumber, products }) => ({
+			postingNumber,
+			products: products.map(({ sku, quantity }) => ({
+				product_id: sku,
+				quantity,
+			})),
+		}));
 
 	if (filter) {
-		return orders.filter(filter).map((order) => order.postingNumber);
+		return prepareData(orders.filter(filter));
 	}
 
-	return orders.map((order) => order.postingNumber);
+	return prepareData(orders);
+};
+
+const getWarehouses = async (id, apiKey) => {
+	const { data } = await axios.post(
+		`${BASE_API}/v1/warehouse/list`,
+		{},
+		{
+			headers: {
+				"Client-Id": id,
+				"Api-Key": apiKey,
+			},
+		}
+	);
+
+	return data.result.map(({ warehouse_id }) => warehouse_id);
+};
+
+const getDeliveryMethodList = async (id, apiKey, warehouse) => {
+	const { data } = await axios.post(
+		`${BASE_API}/v1/delivery-method/list`,
+		{
+			filter: {
+				warehouse_id: warehouse,
+			},
+			offset: 0,
+			limit: LIMIT,
+		},
+		{
+			headers: {
+				"Client-Id": id,
+				"Api-Key": apiKey,
+			},
+		}
+	);
+
+	return data.result;
+};
+
+const getActiveDeliveryMethodIds = async (id, apiKey, warehouses) => {
+	let result = [];
+
+	for (const warehouse of warehouses) {
+		const deliveryMethods = await getDeliveryMethodList(id, apiKey, warehouse);
+		const deliveryMethodsIds = deliveryMethods
+			.filter(({ status }) => status === "ACTIVE")
+			.map(({ id }) => id);
+
+		result.push(...deliveryMethodsIds);
+	}
+
+	return result;
 };
 
 export class ShopService {
 	static async getOrderList() {
 		try {
 			const shopOrders = [];
-			const statuses = [
-				"awaiting_registration",
-				"acceptance_in_progress",
-				"awaiting_approve",
-				"awaiting_packaging",
-				"awaiting_deliver",
-			];
+			const statuses = ["awaiting_packaging", "awaiting_deliver"];
 
 			for (const shop of Object.values(shops)) {
 				const { id, apiKey, color } = shop;
@@ -69,7 +123,11 @@ export class ShopService {
 				);
 
 				const ordersWithColor = filteredOrders.map((order) => ({
-					products: order.products.map((product) => ({ ...product, color })),
+					products: order.products.map((product) => ({
+						...product,
+						color,
+						postingNumber: order.postingNumber,
+					})),
 				}));
 
 				shopOrders.push(ordersWithColor);
@@ -83,11 +141,34 @@ export class ShopService {
 
 	static async prepareFBS() {
 		try {
+			const { id, apiKey } = shops["POINT."];
+			const packages = await getPackages(id, apiKey);
+
+			// if (!packages.length) return null;
+
+			// const { data } = await axios.post(
+			// 	`${BASE_API}/v4/posting/fbs/ship`,
+			// 	{
+			// 		packages: [
+			// 			{
+			// 				products,
+			// 			},
+			// 		],
+			// 		posting_number: postingNumber,
+			// 	},
+			// 	{
+			// 		headers: {
+			// 			"Client-Id": id,
+			// 			"Api-Key": apiKey,
+			// 		},
+			// 	}
+			// );
+
 			// for (const shop of Object.values(shops)) {
 			// 	const { id, apiKey } = shop;
 			// 	const filter = (order) =>
 			// 		order.status !== "awaiting_deliver" && !order.express;
-			// 	const postingNumbers = await getPostingNumbers(id, apiKey, filter);
+			// 	const postingNumbers = await getPackages(id, apiKey, filter);
 			// }
 		} catch (err) {
 			console.log(err);
@@ -98,7 +179,7 @@ export class ShopService {
 		try {
 			// const filter = (order) =>
 			// 	order.status !== "awaiting_deliver" && order.express;
-			// const postingNumbers = await getPostingNumbers(id, apiKey, filter);
+			// const postingNumbers = await getPackages(id, apiKey, filter);
 			// console.log(postingNumbers);
 		} catch (err) {
 			console.log(err);
@@ -107,8 +188,10 @@ export class ShopService {
 
 	static async getLabels(id, apiKey) {
 		try {
-			const filter = (order) => order.status === "awaiting_deliver";
-			const postingNumbers = await getPostingNumbers(id, apiKey, filter);
+			const orders = await getUnfulfilledOrders(id, apiKey);
+			const postingNumbers = orders
+				.filter(({ status }) => status === "awaiting_deliver")
+				.map(({ postingNumber }) => postingNumber);
 
 			if (!postingNumbers.length) {
 				return null;
@@ -157,6 +240,43 @@ export class ShopService {
 
 	static async sendGoods() {
 		try {
+			// for (const shop of Object.values(shops)) {
+			// 	const { id, apiKey } = shop;
+
+			// 	const warehouses = await getWarehouses(id, apiKey);
+
+			// 	const deliveryMethods = await getActiveDeliveryMethodIds(
+			// 		id,
+			// 		apiKey,
+			// 		warehouses
+			// 	);
+
+			// 	console.log(deliveryMethods);
+			// }
+
+			const { id, apiKey } = shops["POINT."];
+			const warehouses = await getWarehouses(id, apiKey);
+
+			const deliveryMethods = await getActiveDeliveryMethodIds(
+				id,
+				apiKey,
+				warehouses
+			);
+
+			// const { data } = await axios.post(
+			// 	`${BASE_API}/v2/posting/fbs/act/create`,
+			// 	{
+			// 		containers_count: 1,
+			// 		delivery_method_id: deliveryMethods[0],
+			// 		departure_date: getDeliveryDate(),
+			// 	},
+			// 	{
+			// 		headers: {
+			// 			"Client-Id": shopId,
+			// 			"Api-Key": shopKey,
+			// 		},
+			// 	}
+			// );
 		} catch (err) {
 			console.log(err);
 		}

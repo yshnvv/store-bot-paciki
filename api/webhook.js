@@ -104,10 +104,7 @@ bot.action("getRefunds", async (ctx) => {
 bot.action("sendGoods", async (ctx) => {
 	await ShopService.sendGoods();
 
-	setInterval(async () => {
-		await ctx.reply("Не готово");
-	}, 1000);
-	// await ctx.reply("Не готово");
+	await ctx.reply("Не готово");
 });
 
 export default async (request, response) => {

@@ -5,6 +5,7 @@ import {
 	GOOGLE_SERVICE_ACCOUNT_EMAIL,
 	GOOGLE_PRIVATE_KEY,
 } from "../constants/environment.js";
+import { getSheetDate } from "../utils/time.js";
 
 const serviceAccountAuth = new JWT({
 	email: GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -12,8 +13,9 @@ const serviceAccountAuth = new JWT({
 	scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
-const CELL_COUNT = 100;
-const CELL_RANGE = `A1:A${CELL_COUNT}`;
+const COLUMNS = 7;
+const ROWS = 100;
+const RANGE = `A1:G${ROWS}`;
 
 export class GoogleDocService {
 	static async updateSheet(data) {
@@ -21,23 +23,44 @@ export class GoogleDocService {
 			const doc = new GoogleSpreadsheet(SHEET_ID, serviceAccountAuth);
 			await doc.loadInfo();
 
-			const sheet = doc.sheetsByIndex[0];
-			await sheet.clear(CELL_RANGE);
-			await sheet.loadCells(CELL_RANGE);
+			const sheetDate = getSheetDate();
+			let sheet = doc.sheetsByTitle[sheetDate];
 
-			for (let i = 1; i < CELL_COUNT; i++) {
-				const cell = sheet.getCell(i, 0);
-				cell.backgroundColor = { red: 1, green: 1, blue: 1 };
+			if (!sheet) {
+				sheet = await doc.addSheet({ title: sheetDate });
+			}
+
+			await sheet.clear(RANGE);
+			await sheet.loadCells(RANGE);
+
+			for (let i = 1; i < ROWS; i++) {
+				for (let j = 0; j < COLUMNS; j++) {
+					const cell = sheet.getCell(i, j);
+					cell.clearAllFormatting();
+				}
 			}
 			await sheet.saveUpdatedCells();
 
-			sheet.setHeaderRow(["Aртикли", "Цены"]);
+			sheet.setHeaderRow(["№", "Aртикли", "Цены", "", "", "", "Номер заказа"]);
 
-			data.forEach((article, index) => {
-				const cell = sheet.getCell(index + 1, 0);
-				cell.value = article.name;
-				cell.backgroundColor = article.color;
-			});
+			for (let i = 0; i < data.length; i++) {
+				for (let j = 0; j < COLUMNS; j++) {
+					const cell = sheet.getCell(i + 1, j);
+
+					if (j === 0) {
+						cell.value = i + 1;
+					}
+
+					if (j === 1) {
+						cell.value = data[i].name;
+						cell.backgroundColor = data[i].color;
+					}
+
+					if (j === 6) {
+						cell.value = data[i].postingNumber;
+					}
+				}
+			}
 
 			await sheet.saveUpdatedCells();
 		} catch (err) {

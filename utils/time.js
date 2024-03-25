@@ -16,3 +16,14 @@ export const getTodayTimeRange = () => {
 export const getCurrentDate = () => {
 	return moment().format("DD.MM.YYYY").toString();
 };
+
+export const getSheetDate = () => {
+	return moment().format("DD.MM").toString();
+};
+
+export const getDeliveryDate = () => {
+	return moment()
+		.set("hour", 16 + 2)
+		.set("minute", 0)
+		.toISOString();
+};
