@@ -68,13 +68,25 @@ bot.action("getOrderList", async (ctx) => {
 });
 
 bot.action("prepareFBS", async (ctx) => {
-	await ShopService.prepareFBS();
-	await ctx.reply("Не готово");
+	const isPrepared = await ShopService.prepareFBS(ctx);
+
+	if (!isPrepared) {
+		await ctx.reply("Нечего отправлять.");
+		return;
+	}
+
+	await ctx.reply("Товары готовы к отправке.");
 });
 
 bot.action("prepareExpress", async (ctx) => {
-	await ShopService.prepareExpress();
-	await ctx.reply("Не готово");
+	const isPrepared = await ShopService.prepareExpress(ctx);
+
+	if (!isPrepared) {
+		await ctx.reply("Нечего отправлять.");
+		return;
+	}
+
+	await ctx.reply("Товары готовы к отправке.");
 });
 
 bot.action("getLabels", async (ctx) => {
@@ -102,9 +114,15 @@ bot.action("getRefunds", async (ctx) => {
 });
 
 bot.action("sendGoods", async (ctx) => {
-	await ShopService.sendGoods();
+	for (const [name, { id, apiKey }] of Object.entries(shops)) {
+		const result = await ShopService.sendGoods(id, apiKey);
 
-	await ctx.reply("Не готово");
+		if (!result) {
+			await ctx.reply(`${name} без методов доставки.`);
+		}
+
+		await ctx.reply(`${name} отгружен.`);
+	}
 });
 
 export default async (request, response) => {

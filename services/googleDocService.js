@@ -43,7 +43,15 @@ export class GoogleDocService {
 			}
 			await sheet.saveUpdatedCells();
 
-			sheet.setHeaderRow(["№", "Aртикли", "Цены", "", "", "", "Номер заказа"]);
+			sheet.setHeaderRow([
+				"№",
+				"Aртикли",
+				"Цены",
+				"Дата отгрузки",
+				"",
+				"",
+				"Номер заказа",
+			]);
 
 			for (let i = 0; i < data.length; i++) {
 				for (let j = 0; j < COLUMNS; j++) {
@@ -62,6 +70,10 @@ export class GoogleDocService {
 							green: COLOR_MAX - green,
 							blue: COLOR_MAX - blue,
 						};
+					}
+
+					if (j === 3) {
+						cell.value = data[i].shipmentDate;
 					}
 
 					if (j === 6) {

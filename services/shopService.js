@@ -1,12 +1,12 @@
 import axios from "axios";
-import { getTodayTimeRange, getDeliveryDate } from "../utils/time.js";
+import { getDeliveryDate, getTimeRange, getEndOfDay } from "../utils/time.js";
 import { shops, BASE_API } from "../constants/environment.js";
-import { prepareOrdersForSheet } from "../utils/products.js";
+import { prepareOrdersForSheet, isValidOrder } from "../utils/products.js";
 
 const LIMIT = 1000;
 
 const getUnfulfilledOrders = async (shopId, shopKey) => {
-	const { from, to } = getTodayTimeRange();
+	const { from, to } = getTimeRange();
 
 	const { data } = await axios.post(
 		`${BASE_API}/v3/posting/fbs/list`,
@@ -26,25 +26,28 @@ const getUnfulfilledOrders = async (shopId, shopKey) => {
 		}
 	);
 
-	const products = data.result.postings.map((order) => ({
-		products: order.products,
-		express: order.is_express,
-		status: order.status,
-		deliveryMethod: order.delivery_method,
-		postingNumber: order.posting_number,
-		shipmentDate: order.shipment_date,
-		id: order.order_id,
-	}));
+	const products = data.result.postings
+		.map((order) => ({
+			products: order.products,
+			express: order.is_express,
+			status: order.status,
+			deliveryMethod: order.delivery_method,
+			postingNumber: order.posting_number,
+			shipmentDate: order.shipment_date,
+			id: order.order_id,
+		}))
+		.filter(({ shipmentDate }) => getEndOfDay().isAfter(shipmentDate));
 
 	return products;
 };
 
-const getPackages = async (id, apiKey, filter) => {
+const getPackages = async (id, apiKey, shopName, filter) => {
 	const orders = await getUnfulfilledOrders(id, apiKey);
-	console.log(JSON.stringify(orders));
+
 	const prepareData = (orders) =>
 		orders.map(({ postingNumber, products }) => ({
 			postingNumber,
+			shopName,
 			products: products.map(({ sku, quantity }) => ({
 				product_id: sku,
 				quantity,
@@ -128,6 +131,8 @@ export class ShopService {
 						...product,
 						color,
 						postingNumber: order.postingNumber,
+						status: order.status,
+						shipmentDate: order.shipmentDate,
 					})),
 				}));
 
@@ -140,48 +145,55 @@ export class ShopService {
 		}
 	}
 
-	static async prepareFBS() {
+	static async prepareOrder(ctx, isExpress) {
 		try {
-			const { id, apiKey } = shops["POINT."];
-			const packages = await getPackages(id, apiKey);
+			const filter = (order) =>
+				order.status === "awaiting_packaging" && order.express === isExpress;
 
-			// if (!packages.length) return null;
+			for (const [shopName, shop] of Object.entries(shops)) {
+				const { id, apiKey } = shop;
+				const packages = await getPackages(id, apiKey, shopName, filter);
 
-			// const { data } = await axios.post(
-			// 	`${BASE_API}/v4/posting/fbs/ship`,
-			// 	{
-			// 		packages: [
-			// 			{
-			// 				products,
-			// 			},
-			// 		],
-			// 		posting_number: postingNumber,
-			// 	},
-			// 	{
-			// 		headers: {
-			// 			"Client-Id": id,
-			// 			"Api-Key": apiKey,
-			// 		},
-			// 	}
-			// );
+				const validOrders = packages.filter((order) =>
+					isValidOrder(order, ctx)
+				);
 
-			// for (const shop of Object.values(shops)) {
-			// 	const { id, apiKey } = shop;
-			// 	const filter = (order) =>
-			// 		order.status !== "awaiting_deliver" && !order.express;
-			// 	const postingNumbers = await getPackages(id, apiKey, filter);
-			// }
+				if (!validOrders.length) return null;
+
+				for (const { products, postingNumber } of validOrders) {
+					await axios.post(
+						`${BASE_API}/v4/posting/fbs/ship`,
+						{
+							packages: [
+								{
+									products,
+								},
+							],
+							posting_number: postingNumber,
+						},
+						{
+							headers: {
+								"Client-Id": id,
+								"Api-Key": apiKey,
+							},
+						}
+					);
+				}
+			}
+
+			return true;
 		} catch (err) {
 			console.log(err);
 		}
 	}
 
-	static async prepareExpress() {
+	static async prepareFBS(ctx) {
+		return this.prepareOrder(ctx, false);
+	}
+
+	static async prepareExpress(ctx) {
 		try {
-			// const filter = (order) =>
-			// 	order.status !== "awaiting_deliver" && order.express;
-			// const postingNumbers = await getPackages(id, apiKey, filter);
-			// console.log(postingNumbers);
+			return this.prepareOrder(ctx, true);
 		} catch (err) {
 			console.log(err);
 		}
@@ -239,23 +251,8 @@ export class ShopService {
 		}
 	}
 
-	static async sendGoods() {
+	static async sendGoods(id, apiKey) {
 		try {
-			// for (const shop of Object.values(shops)) {
-			// 	const { id, apiKey } = shop;
-
-			// 	const warehouses = await getWarehouses(id, apiKey);
-
-			// 	const deliveryMethods = await getActiveDeliveryMethodIds(
-			// 		id,
-			// 		apiKey,
-			// 		warehouses
-			// 	);
-
-			// 	console.log(deliveryMethods);
-			// }
-
-			const { id, apiKey } = shops["POINT."];
 			const warehouses = await getWarehouses(id, apiKey);
 
 			const deliveryMethods = await getActiveDeliveryMethodIds(
@@ -264,20 +261,27 @@ export class ShopService {
 				warehouses
 			);
 
-			// const { data } = await axios.post(
-			// 	`${BASE_API}/v2/posting/fbs/act/create`,
-			// 	{
-			// 		containers_count: 1,
-			// 		delivery_method_id: deliveryMethods[0],
-			// 		departure_date: getDeliveryDate(),
-			// 	},
-			// 	{
-			// 		headers: {
-			// 			"Client-Id": shopId,
-			// 			"Api-Key": shopKey,
-			// 		},
-			// 	}
-			// );
+			if (!deliveryMethods.length) {
+				return null;
+			}
+
+			for (const deliveryMethod of deliveryMethods) {
+				const { data } = await axios.post(
+					`${BASE_API}/v2/posting/fbs/act/create`,
+					{
+						delivery_method_id: deliveryMethod,
+						departure_date: getDeliveryDate(),
+					},
+					{
+						headers: {
+							"Client-Id": id,
+							"Api-Key": apiKey,
+						},
+					}
+				);
+			}
+
+			return data;
 		} catch (err) {
 			console.log(err);
 		}
