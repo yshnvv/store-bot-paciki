@@ -19,6 +19,40 @@ const COLUMNS = 7;
 const ROWS = 100;
 const RANGE = `A1:G${ROWS}`;
 
+const getColor = (color) => {
+	return COLOR_MAX - color;
+};
+
+const headerColor = {
+	red: getColor(158),
+	green: getColor(196),
+	blue: getColor(232),
+};
+
+const prepareHeader = async (sheet) => {
+	sheet.setHeaderRow([
+		"№",
+		"Наименование",
+		"Дата отгрузки",
+		"",
+		"Цена",
+		"Статус",
+		"Номер заказа",
+	]);
+
+	for (let i = 0; i < COLUMNS; i++) {
+		const cell = sheet.getCell(0, i);
+		cell.textFormat = { bold: true };
+		cell.backgroundColor = headerColor;
+	}
+
+	await sheet.updateDimensionProperties(
+		"COLUMNS",
+		{ hiddenByUser: true },
+		{ startIndex: 3, endIndex: 4 }
+	);
+};
+
 export class GoogleDocService {
 	static async updateSheet(data) {
 		try {
@@ -43,15 +77,7 @@ export class GoogleDocService {
 			}
 			await sheet.saveUpdatedCells();
 
-			sheet.setHeaderRow([
-				"№",
-				"Aртикли",
-				"Цены",
-				"Дата отгрузки",
-				"",
-				"",
-				"Номер заказа",
-			]);
+			prepareHeader(sheet);
 
 			for (let i = 0; i < data.length; i++) {
 				for (let j = 0; j < COLUMNS; j++) {
@@ -66,13 +92,13 @@ export class GoogleDocService {
 						cell.value = data[i].name;
 
 						cell.backgroundColor = {
-							red: COLOR_MAX - red,
-							green: COLOR_MAX - green,
-							blue: COLOR_MAX - blue,
+							red: getColor(red),
+							green: getColor(green),
+							blue: getColor(blue),
 						};
 					}
 
-					if (j === 3) {
+					if (j === 2) {
 						cell.value = data[i].shipmentDate;
 					}
 

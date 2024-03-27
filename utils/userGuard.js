@@ -1,10 +1,12 @@
 import { USERS } from "../constants/environment.js";
 
-export const userGuard = async (ctx, callback) => {
-	const callbackId = ctx.update.callback_query?.from?.id;
-	const messageId = ctx.update.message?.from?.id;
+const users = USERS.split(",");
 
-	if (USERS.includes(callbackId) || USERS.includes(messageId)) {
+export const userGuard = async (ctx, callback) => {
+	const callbackId = String(ctx.update.callback_query?.from?.id);
+	const messageId = String(ctx.update.message?.from?.id);
+
+	if (users.includes(callbackId) || users.includes(messageId)) {
 		await callback();
 		return;
 	}
