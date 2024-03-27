@@ -41,7 +41,7 @@ export const isValidOrder = (order, ctx) => {
 			`Возможный скаммер в ${order.postingNumber}.
 			\nМагазин ${shopName}`
 		);
-		return false;
+		return true;
 	}
 
 	if (overload) {
