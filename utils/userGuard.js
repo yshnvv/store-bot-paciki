@@ -1,6 +1,6 @@
 import { USERS } from "../constants/environment.js";
 
-const users = USERS?.split(",") || [];
+const users = USERS ? USERS.split(",") : [];
 
 export const userGuard = async (ctx, callback) => {
 	const callbackId = String(ctx.update.callback_query?.from?.id);
