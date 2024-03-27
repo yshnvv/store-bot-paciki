@@ -4,7 +4,7 @@ import { ShopService } from "../services/shopService.js";
 import { BOT_TOKEN } from "../constants/environment.js";
 import { shops, SHEET_ID } from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
-import { setWebHook } from "../utils/setWebHook.js";
+import { userGuard } from "../utils/userGuard.js";
 
 const { Telegraf, Input } = telegraf;
 
@@ -52,83 +52,102 @@ const reply_markup = {
 };
 
 bot.start(async (ctx) => {
-	await ctx.reply("Выберите действие", {
-		parse_mode: "MarkdownV2",
-		reply_markup,
+	await userGuard(ctx, async () => {
+		await ctx.reply("Выберите действие", {
+			parse_mode: "MarkdownV2",
+			reply_markup,
+		});
 	});
 });
 
 bot.action("getOrderList", async (ctx) => {
-	const list = await ShopService.getOrderList();
-	await GoogleDocService.updateSheet(list);
+	await userGuard(ctx, async () => {
+		const list = await ShopService.getOrderList();
+		await GoogleDocService.updateSheet(list);
 
-	await ctx.reply(
-		`Таблица обновлена. \n https://docs.google.com/spreadsheets/d/${SHEET_ID}`
-	);
+		await ctx.reply(
+			`Таблица обновлена. \n https://docs.google.com/spreadsheets/d/${SHEET_ID}`
+		);
+	});
 });
 
 bot.action("prepareFBS", async (ctx) => {
-	const isPrepared = await ShopService.prepareFBS(ctx);
+	await userGuard(ctx, async () => {
+		const isPrepared = await ShopService.prepareFBS(ctx);
 
-	if (!isPrepared) {
-		await ctx.reply("Нечего отправлять.");
-		return;
-	}
+		if (!isPrepared) {
+			await ctx.reply("Нечего отправлять.");
+			return;
+		}
 
-	await ctx.reply("Товары готовы к отправке.");
+		await ctx.reply("Товары готовы к отправке.");
+	});
 });
 
 bot.action("prepareExpress", async (ctx) => {
-	const isPrepared = await ShopService.prepareExpress(ctx);
+	await userGuard(ctx, async () => {
+		const isPrepared = await ShopService.prepareExpress(ctx);
 
-	if (!isPrepared) {
-		await ctx.reply("Нечего отправлять.");
-		return;
-	}
+		if (!isPrepared) {
+			await ctx.reply("Нечего отправлять.");
+			return;
+		}
 
-	await ctx.reply("Товары готовы к отправке.");
+		await ctx.reply("Товары готовы к отправке.");
+	});
 });
 
 bot.action("getLabels", async (ctx) => {
-	for (const [name, { id, apiKey }] of Object.entries(shops)) {
-		const labels = await ShopService.getLabels(id, apiKey);
+	await userGuard(ctx, async () => {
+		for (const [name, { id, apiKey }] of Object.entries(shops)) {
+			const labels = await ShopService.getLabels(id, apiKey);
 
-		if (!labels) {
-			await ctx.reply(`Бирок для магазина ${name} нет.`);
-			continue;
+			if (!labels) {
+				await ctx.reply(`Бирок для магазина ${name} нет.`);
+				continue;
+			}
+
+			await ctx.replyWithDocument(
+				Input.fromReadableStream(
+					labels,
+					`Бирки ${name} ${getCurrentDate()}.pdf`
+				)
+			);
 		}
-
-		await ctx.replyWithDocument(
-			Input.fromReadableStream(labels, `Бирки ${name} ${getCurrentDate()}.pdf`)
-		);
-	}
+	});
 });
 
 bot.action("getRefunds", async (ctx) => {
-	for (const [name, { id, apiKey }] of Object.entries(shops)) {
-		const refunds = await ShopService.getRefunds(id, apiKey);
-		await ctx.replyWithPhoto(Input.fromBuffer(Buffer.from(refunds, "base64")), {
-			caption: name,
-		});
-	}
+	await userGuard(ctx, async () => {
+		for (const [name, { id, apiKey }] of Object.entries(shops)) {
+			const refunds = await ShopService.getRefunds(id, apiKey);
+			await ctx.replyWithPhoto(
+				Input.fromBuffer(Buffer.from(refunds, "base64")),
+				{
+					caption: name,
+				}
+			);
+		}
+	});
 });
 
 bot.action("sendGoods", async (ctx) => {
-	for (const [name, { id, apiKey }] of Object.entries(shops)) {
-		const result = await ShopService.sendGoods(id, apiKey);
+	await userGuard(ctx, async () => {
+		for (const [name, { id, apiKey }] of Object.entries(shops)) {
+			const result = await ShopService.sendGoods(id, apiKey);
 
-		if (!result) {
-			await ctx.reply(`${name} без методов доставки.`);
+			if (!result) {
+				await ctx.reply(`${name} без методов доставки.`);
+			}
+
+			await ctx.reply(`${name} отгружен.`);
 		}
-
-		await ctx.reply(`${name} отгружен.`);
-	}
+	});
 });
 
 export default async (request, response) => {
 	try {
 		const { body } = request;
-		setWebHook();
 
 		if (body.message || body.callback_query) {
 			await bot.handleUpdate(body);

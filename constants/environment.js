@@ -3,6 +3,7 @@ dotenv.config();
 
 export const {
 	BOT_TOKEN,
+	USERS,
 	BOT_DOMAIN,
 	SHEET_ID,
 	GOOGLE_SERVICE_ACCOUNT_EMAIL,
