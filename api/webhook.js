@@ -6,11 +6,13 @@ import { shops, SHEET_ID } from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
 import { userGuard } from "../utils/userGuard.js";
 
-const { Telegraf, Input } = telegraf;
+const { Telegraf, Input, Markup } = telegraf;
 
 export const bot = new Telegraf(BOT_TOKEN);
 
-const reply_markup = {
+const startMarkup = Markup.keyboard(["/start"]).oneTime().resize();
+
+const actionsMarkup = {
 	inline_keyboard: [
 		[
 			{
@@ -55,7 +57,7 @@ bot.start(async (ctx) => {
 	await userGuard(ctx, async () => {
 		await ctx.reply("Выберите действие", {
 			parse_mode: "MarkdownV2",
-			reply_markup,
+			reply_markup: actionsMarkup,
 		});
 	});
 });
@@ -63,10 +65,15 @@ bot.start(async (ctx) => {
 bot.action("getOrderList", async (ctx) => {
 	await userGuard(ctx, async () => {
 		const list = await ShopService.getOrderList();
-		await GoogleDocService.updateSheet(list);
+		const sheetId = await GoogleDocService.updateSheet(list);
+
+		if (!sheetId) {
+			await ctx.reply("Ошибка записи в гуглдок", startMarkup);
+		}
 
 		await ctx.reply(
-			`Таблица обновлена. \n https://docs.google.com/spreadsheets/d/${SHEET_ID}`
+			`Таблица обновлена. \n https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${sheetId}`,
+			startMarkup
 		);
 	});
 });
@@ -76,11 +83,11 @@ bot.action("prepareFBS", async (ctx) => {
 		const isPrepared = await ShopService.prepareFBS(ctx);
 
 		if (!isPrepared) {
-			await ctx.reply("Нечего отправлять.");
+			await ctx.reply("Нечего отправлять.", startMarkup);
 			return;
 		}
 
-		await ctx.reply("Товары готовы к отправке.");
+		await ctx.reply("Товары готовы к отправке.", startMarkup);
 	});
 });
 
@@ -89,11 +96,11 @@ bot.action("prepareExpress", async (ctx) => {
 		const isPrepared = await ShopService.prepareExpress(ctx);
 
 		if (!isPrepared) {
-			await ctx.reply("Нечего отправлять.");
+			await ctx.reply("Нечего отправлять.", startMarkup);
 			return;
 		}
 
-		await ctx.reply("Товары готовы к отправке.");
+		await ctx.reply("Товары готовы к отправке.", startMarkup);
 	});
 });
 
@@ -103,7 +110,7 @@ bot.action("getLabels", async (ctx) => {
 			const labels = await ShopService.getLabels(id, apiKey);
 
 			if (!labels) {
-				await ctx.reply(`Бирок для магазина ${name} нет.`);
+				await ctx.reply(`Бирок для магазина ${name} нет.`, startMarkup);
 				continue;
 			}
 
@@ -111,7 +118,8 @@ bot.action("getLabels", async (ctx) => {
 				Input.fromReadableStream(
 					labels,
 					`Бирки ${name} ${getCurrentDate()}.pdf`
-				)
+				),
+				startMarkup
 			);
 		}
 	});
@@ -125,6 +133,7 @@ bot.action("getRefunds", async (ctx) => {
 				Input.fromBuffer(Buffer.from(refunds, "base64")),
 				{
 					caption: name,
+					...startMarkup,
 				}
 			);
 		}
@@ -137,10 +146,10 @@ bot.action("sendGoods", async (ctx) => {
 			const result = await ShopService.sendGoods(id, apiKey);
 
 			if (!result) {
-				await ctx.reply(`${name} без методов доставки.`);
+				await ctx.reply(`${name} без методов доставки.`, startMarkup);
 			}
 
-			await ctx.reply(`${name} отгружен.`);
+			await ctx.reply(`${name} отгружен.`, startMarkup);
 		}
 	});
 });

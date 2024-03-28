@@ -109,6 +109,8 @@ export class GoogleDocService {
 			}
 
 			await sheet.saveUpdatedCells();
+
+			return sheet.sheetId;
 		} catch (err) {
 			console.log(err);
 		}
