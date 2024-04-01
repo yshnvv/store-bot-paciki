@@ -2,7 +2,11 @@ import telegraf from "telegraf";
 import { GoogleDocService } from "../services/googleDocService.js";
 import { ShopService } from "../services/shopService.js";
 import { BOT_TOKEN } from "../constants/environment.js";
-import { shops, SHEET_ID } from "../constants/environment.js";
+import {
+	shops,
+	SHEET_ID,
+	GOOGLE_BALANCE_SHEET_URL,
+} from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
 import { userGuard } from "../utils/userGuard.js";
 
@@ -16,37 +20,43 @@ const actionsMarkup = {
 	inline_keyboard: [
 		[
 			{
-				text: "1. Список заказов",
+				text: "1. Баланс",
+				callback_data: "getBalance",
+			},
+		],
+		[
+			{
+				text: "2. Список заказов",
 				callback_data: "getOrderList",
 			},
 		],
 		[
 			{
-				text: "2. Собрать все FBS",
+				text: "3. Собрать все FBS",
 				callback_data: "prepareFBS",
 			},
 		],
 		[
 			{
-				text: "3. Собрать все Express",
+				text: "4. Собрать все Express",
 				callback_data: "prepareExpress",
 			},
 		],
 		[
 			{
-				text: "4. Получить все этикетки",
+				text: "5. Получить все этикетки",
 				callback_data: "getLabels",
 			},
 		],
 		[
 			{
-				text: "5. Получить возвраты",
+				text: "6. Получить возвраты",
 				callback_data: "getRefunds",
 			},
 		],
 		[
 			{
-				text: "6. Отгрузить",
+				text: "7. Отгрузить",
 				callback_data: "sendGoods",
 			},
 		],
@@ -62,6 +72,12 @@ bot.start(async (ctx) => {
 	});
 });
 
+bot.action("getBalance", async (ctx) => {
+	await userGuard(ctx, async () => {
+		await ctx.reply(GOOGLE_BALANCE_SHEET_URL, startMarkup);
+	});
+});
+
 bot.action("getOrderList", async (ctx) => {
 	await userGuard(ctx, async () => {
 		const list = await ShopService.getOrderList();
@@ -69,6 +85,7 @@ bot.action("getOrderList", async (ctx) => {
 
 		if (!sheetId) {
 			await ctx.reply("Ошибка записи в гуглдок", startMarkup);
+			return;
 		}
 
 		await ctx.reply(

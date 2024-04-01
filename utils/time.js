@@ -35,5 +35,5 @@ export const getDeliveryDate = () => {
 };
 
 export const ISO2DateTime = (iso) => {
-	return moment(iso).format("DD.MM.YYYY");
+	return moment(iso).format("DD.MM");
 };
