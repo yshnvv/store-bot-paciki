@@ -66,7 +66,8 @@ export class GoogleDocService {
 				sheet = await doc.addSheet({ title: sheetDate });
 			}
 
-			await sheet.clear(RANGE);
+			await sheet.clear(`A1:C100`);
+			await sheet.clear(`G1:G100`);
 			await sheet.loadCells(RANGE);
 
 			for (let i = 1; i < ROWS; i++) {
