@@ -19,6 +19,13 @@ const COLUMNS = 7;
 const ROWS = 100;
 const RANGE = `A1:G${ROWS}`;
 
+const NUMBER_COLUMN = "№";
+const NAME_COLUMN = "Наименование";
+const DATE_COLUMN = "Дата отгрузки";
+const PRICE_COLUMN = "Цена";
+const STATUS_COLUMN = "Статус";
+const POSTING_NUMBER_COLUMN = "Номер заказа";
+
 const getColor = (color) => {
 	return COLOR_MAX - color;
 };
@@ -31,13 +38,13 @@ const headerColor = {
 
 const prepareHeader = async (sheet) => {
 	sheet.setHeaderRow([
-		"№",
-		"Наименование",
-		"Дата отгрузки",
+		NUMBER_COLUMN,
+		NAME_COLUMN,
+		DATE_COLUMN,
 		"",
-		"Цена",
-		"Статус",
-		"Номер заказа",
+		PRICE_COLUMN,
+		STATUS_COLUMN,
+		POSTING_NUMBER_COLUMN,
 	]);
 
 	for (let i = 0; i < COLUMNS; i++) {
