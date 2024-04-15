@@ -2,11 +2,7 @@ import telegraf from "telegraf";
 import { GoogleDocService } from "../services/googleDocService.js";
 import { ShopService } from "../services/shopService.js";
 import { BOT_TOKEN } from "../constants/environment.js";
-import {
-	shops,
-	SHEET_ID,
-	GOOGLE_BALANCE_SHEET_URL,
-} from "../constants/environment.js";
+import { shops, SHEET_ID } from "../constants/environment.js";
 import { getCurrentDate } from "../utils/time.js";
 import { userGuard } from "../utils/userGuard.js";
 
