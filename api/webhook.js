@@ -74,6 +74,10 @@ bot.start(async (ctx) => {
 
 bot.action("getBalance", async (ctx) => {
 	await userGuard(ctx, async () => {
+		if (!GOOGLE_BALANCE_SHEET_URL) {
+			await ctx.reply("Эта кнопка не работает.");
+		}
+
 		await ctx.reply(GOOGLE_BALANCE_SHEET_URL, startMarkup);
 	});
 });
