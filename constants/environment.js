@@ -10,7 +10,6 @@ export const {
 	GOOGLE_PRIVATE_KEY,
 	BASE_API,
 	SHOPS,
-	GOOGLE_BALANCE_SHEET_URL,
 } = process.env;
 
 export const shops = JSON.parse(SHOPS);
