@@ -20,43 +20,37 @@ const actionsMarkup = {
 	inline_keyboard: [
 		[
 			{
-				text: "1. Баланс",
-				callback_data: "getBalance",
-			},
-		],
-		[
-			{
-				text: "2. Список заказов",
+				text: "1. Список заказов",
 				callback_data: "getOrderList",
 			},
 		],
 		[
 			{
-				text: "3. Собрать все FBS",
+				text: "2. Собрать все FBS",
 				callback_data: "prepareFBS",
 			},
 		],
 		[
 			{
-				text: "4. Собрать все Express",
+				text: "3. Собрать все Express",
 				callback_data: "prepareExpress",
 			},
 		],
 		[
 			{
-				text: "5. Получить все этикетки",
+				text: "4. Получить все этикетки",
 				callback_data: "getLabels",
 			},
 		],
 		[
 			{
-				text: "6. Получить возвраты",
+				text: "5. Получить возвраты",
 				callback_data: "getRefunds",
 			},
 		],
 		[
 			{
-				text: "7. Отгрузить",
+				text: "6. Отгрузить",
 				callback_data: "sendGoods",
 			},
 		],
@@ -69,16 +63,6 @@ bot.start(async (ctx) => {
 			parse_mode: "MarkdownV2",
 			reply_markup: actionsMarkup,
 		});
-	});
-});
-
-bot.action("getBalance", async (ctx) => {
-	await userGuard(ctx, async () => {
-		if (!GOOGLE_BALANCE_SHEET_URL) {
-			await ctx.reply("Эта кнопка не работает.");
-		}
-
-		await ctx.reply(GOOGLE_BALANCE_SHEET_URL, startMarkup);
 	});
 });
 
