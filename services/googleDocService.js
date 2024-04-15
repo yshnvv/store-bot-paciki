@@ -16,7 +16,7 @@ const serviceAccountAuth = new JWT({
 const COLOR_MAX = 256;
 
 const COLUMNS = 7;
-const ROWS = 100;
+const ROWS = 400;
 const RANGE = `A1:G${ROWS}`;
 
 const NUMBER_COLUMN = "№";
@@ -73,8 +73,8 @@ export class GoogleDocService {
 				sheet = await doc.addSheet({ title: sheetDate });
 			}
 
-			await sheet.clear(`A1:C100`);
-			await sheet.clear(`G1:G100`);
+			await sheet.clear(`A1:C400`);
+			await sheet.clear(`G1:G400`);
 			await sheet.loadCells(RANGE);
 
 			for (let i = 1; i < ROWS; i++) {
