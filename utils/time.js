@@ -5,7 +5,7 @@ const DAYS_RANGE = 3;
 
 export const getEndOfDay = () =>
 	moment()
-		.set("hour", 16 + 2)
+		.set("hour", 16 + TIMEZONE)
 		.set("minute", 0);
 
 export const getTimeRange = () => {
@@ -13,7 +13,7 @@ export const getTimeRange = () => {
 		to: moment().add(TIMEZONE, "hours").toISOString(),
 		from: moment()
 			.subtract(DAYS_RANGE, "days")
-			.set("hour", 16 + 2)
+			.set("hour", 16 + TIMEZONE)
 			.set("minute", 0)
 			.toISOString(),
 	};
@@ -29,7 +29,7 @@ export const getSheetDate = () => {
 
 export const getDeliveryDate = () => {
 	return moment()
-		.set("hour", 16 + 2)
+		.set("hour", 16 + TIMEZONE)
 		.set("minute", 0)
 		.toISOString();
 };
